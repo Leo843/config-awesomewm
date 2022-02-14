@@ -252,8 +252,22 @@ root.buttons(gears.table.join(
 ))
 -- }}}
 
+-- {{{ Keyboard layouts
+keyboardlayout = {}
+keyboardlayout.layouts = { "us", "fr" }
+keyboardlayout.current = 1  -- us is our default layout
+keyboardlayout.switch = function ()
+  local totallayouts = #(keyboardlayout.layouts)
+  keyboardlayout.current = keyboardlayout.current % totallayouts + 1
+  local newlayout = keyboardlayout.layouts[keyboardlayout.current]
+  os.execute( "setxkbmap " .. newlayout )
+end
+-- }}}
+
 -- {{{ Key bindings
 globalkeys = gears.table.join(
+    awful.key({ modkey, "Shift"   }, "l",      keyboardlayout.switch,
+              {description="switch keyboard", group="keyboard"}),
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description="show help", group="awesome"}),
     awful.key({ modkey,           }, "Left",   awful.tag.viewprev,
