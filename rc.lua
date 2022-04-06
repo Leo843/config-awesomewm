@@ -55,7 +55,7 @@ beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
 -- beautiful.init(gears.filesystem.get_themes_dir() .. "xresources/theme.lua")
 -- beautiful.init(gears.filesystem.get_themes_dir() .. "zenburn/theme.lua")
 beautiful.font      = "sans 13"
-beautiful.wallpaper = "/home/leo/Pictures/wall_rainbow_cheatsheet.png"
+beautiful.wallpaper = "~/.config/awesome/wall_rainbow_cheatsheet.png"
 
 -- This is used later as the default terminal and editor to run.
 -- terminal = "x-terminal-emulator"
