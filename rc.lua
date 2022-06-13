@@ -59,7 +59,7 @@ beautiful.wallpaper = "/home/leo/.config/awesome/wall_rainbow_cheatsheet.png"
 
 -- This is used later as the default terminal and editor to run.
 -- terminal = "x-terminal-emulator"
-terminal = "alacritty"
+terminal = "gnome-terminal"
 editor = os.getenv("EDITOR") or "editor"
 editor_cmd = terminal .. " -e " .. editor
 
