@@ -1,23 +1,15 @@
--- Standard awesome library
-local gears = require("gears")
-local awful = require("awful")
-require("awful.autofocus")
--- Widget and layout library
-local wibox = require("wibox")
--- Theme handling library
-local beautiful = require("beautiful")
--- Notification library
-local naughty = require("naughty")
-local menubar = require("menubar")
-local hotkeys_popup = require("awful.hotkeys_popup")
--- Enable hotkeys help widget for VIM and other apps
--- when client with a matching name is opened:
-require("awful.hotkeys_popup.keys")
-
--- Load Debian menu entries
-local debian = require("debian.menu")
-local has_fdo, freedesktop = pcall(require, "freedesktop")
-
+-- {{{ Imports
+local gears              = require("gears")
+local awful              = require("awful")
+local awful_autofocus    = require("awful.autofocus")
+local wibox              = require("wibox")
+local beautiful          = require("beautiful")
+local naughty            = require("naughty")
+local menubar            = require("menubar")
+local vicious            = require("vicious")
+local hotkeys_popup      = require("awful.hotkeys_popup")
+local debian             = require("debian.menu")
+-- }}}
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
 -- another config (This code will only ever execute for the fallback config)
@@ -51,34 +43,25 @@ do
   )
 end
 -- }}}
-
 -- {{{ Variable definitions
--- Themes define colours, icons, font and wallpapers.
-beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
--- beautiful.init(gears.filesystem.get_themes_dir() .. "gtk/theme.lua")
--- beautiful.init(gears.filesystem.get_themes_dir() .. "sky/theme.lua")
--- beautiful.init(gears.filesystem.get_themes_dir() .. "xresources/theme.lua")
--- beautiful.init(gears.filesystem.get_themes_dir() .. "zenburn/theme.lua")
-beautiful.font = "sans 13"
-beautiful.wallpaper = os.getenv("HOME")
-  .. "/.config/awesome/wall_rainbow_cheatsheet.png"
-
--- This is used later as the default terminal and editor to run.
-terminal = "x-terminal-emulator"
-editor = os.getenv("EDITOR") or "editor"
-editor_cmd = terminal .. " -e " .. editor
-
--- Default modkey.
--- Usually, Mod4 is the key with a logo between Control and Alt.
--- If you do not like this or do not have such a key,
--- I suggest you to remap Mod4 to another key using xmodmap or other tools.
--- However, you can use another modifier like Mod1, but it may interact with others.
-modkey = "Mod4"
-
--- Table of layouts to cover with awful.layout.inc, order matters.
+local home             = os.getenv("HOME")
+local confdir          = home .. "/.config/awesome"
+local themes           = confdir .. "/themes"
+local active_theme     = themes .. "/solarized_dark"
+local default_themes   = gears.filesystem.get_themes_dir()
+local default_theme    = default_themes .. "default/theme.lua"
+local terminal         = "x-terminal-emulator"
+local editor           = os.getenv("EDITOR") or "editor"
+local editor_cmd       = terminal .. " -e " .. editor
+local modkey           = "Mod4" -- Mod4 is the Win key
+--- }}}
+-- {{{ Theme
+-- beautiful.init(default_theme)
+beautiful.init(active_theme .. "/theme.lua")
+-- }}}
+-- {{{ Layouts
 awful.layout.layouts = {
   awful.layout.suit.tile,
-  -- awful.layout.suit.tile.left,
   awful.layout.suit.tile.bottom,
   -- awful.layout.suit.tile.top,
   -- awful.layout.suit.fair,
@@ -95,85 +78,49 @@ awful.layout.layouts = {
   -- awful.layout.suit.floating,
 }
 -- }}}
-
--- {{{ Menu
--- Create a launcher widget and a main menu
--- myawesomemenu = {
---   {
---     "hotkeys",
---     function() hotkeys_popup.show_help(nil, awful.screen.focused()) end,
---   },
---   { "manual", terminal .. " -e man awesome" },
---   { "edit config", editor_cmd .. " " .. awesome.conffile },
---   { "restart", awesome.restart },
---   {
---     "quit",
---     function() awesome.quit() end,
---   },
--- }
-
--- local menu_awesome = { "awesome", myawesomemenu, beautiful.awesome_icon }
--- local menu_terminal = { "open terminal", terminal }
-
--- if has_fdo then
---   mymainmenu = freedesktop.menu.build({
---     before = { menu_awesome },
---     after = { menu_terminal },
---   })
--- else
---   mymainmenu = awful.menu({
---     items = {
---       menu_awesome,
---       { "Debian", debian.menu.Debian_menu.Debian },
---       menu_terminal,
---     },
---   })
--- end
-
--- mylauncher =
---   awful.widget.launcher({ image = beautiful.awesome_icon, menu = mymainmenu })
-
--- Menubar configuration
---   Set the terminal for applications that require it
-menubar.utils.terminal = terminal
--- }}}
-
--- Keyboard map indicator and switcher
-mykeyboardlayout = awful.widget.keyboardlayout()
-
 -- {{{ Wibar
--- Create a textclock widget
-mytextclock = wibox.widget.textclock()
+local text_clock      = wibox.widget.textclock("%A %0d/%0m/%Y %0H:%0M ")
+local keyboard_layout = awful.widget.keyboardlayout()
 
--- Create a wibox for each screen and add it
+-- {{{ Defines actions preformed when clicking on a tag.
 local taglist_buttons = gears.table.join(
+  -- Move to the given tag with left click.
   awful.button({}, 1, function(t) t:view_only() end),
+
+  -- Move the current client to the given tag with modkey + left click.
   awful.button(
-    -- stylua: ignore start
     { modkey },
     1,
     function(t)
       if client.focus then client.focus:move_to_tag(t) end
     end
-    -- stylua: ignore end
   ),
+
+  -- Display (without binding) clients from the given tag in the current with
+  -- right click.
   awful.button({}, 3, awful.tag.viewtoggle),
+
+  -- Display and bind clients from the current tag into the given tag with
+  -- modkey + right click.
   awful.button(
-    -- stylua: ignore start
     { modkey },
     3,
     function(t)
       if client.focus then client.focus:toggle_tag(t) end
     end
-    -- stylua: ignore end
   ),
+
+  -- Switch to the next tag with scroll up
   awful.button({}, 4, function(t) awful.tag.viewnext(t.screen) end),
+
+  -- Switch to the previous tag with scroll down
   awful.button({}, 5, function(t) awful.tag.viewprev(t.screen) end)
 )
-
+-- }}}
+-- {{{ Defines actions performed when clicking on a task.
 local tasklist_buttons = gears.table.join(
+  -- Display/Minimized the given client with left click.
   awful.button(
-    -- stylua: ignore start
     {},
     1,
     function(c)
@@ -183,31 +130,34 @@ local tasklist_buttons = gears.table.join(
         c:emit_signal("request::activate", "tasklist", { raise = true })
       end
     end
-    -- stylua: ignore end
   ),
+
+  -- Display a menu showing all clients.
   awful.button(
     {},
     3,
     function() awful.menu.client_list({ theme = { width = 250 } }) end
   ),
+
+  -- Display the next client with scroll up.
   awful.button({}, 4, function() awful.client.focus.byidx(1) end),
+
+  -- Display the previous client with scroll down.
   awful.button({}, 5, function() awful.client.focus.byidx(-1) end)
 )
+-- }}}
 
 local function set_wallpaper(s)
   if beautiful.wallpaper then
-    local wallpaper = beautiful.wallpaper
-    -- If wallpaper is a function, call it with the screen
-    if type(wallpaper) == "function" then wallpaper = wallpaper(s) end
-    gears.wallpaper.maximized(wallpaper, s, true)
+    gears.wallpaper.maximized(beautiful.wallpaper, s, true)
   end
 end
-
--- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
+-- Set wallpaper when a screen's geometry changes
 screen.connect_signal("property::geometry", set_wallpaper)
 
+-- Create a wibox for each screen
 awful.screen.connect_for_each_screen(function(s)
-  -- Wallpaper
+  -- Set the same wp for each screen.
   set_wallpaper(s)
 
   -- Each screen has its own tag table.
@@ -218,13 +168,14 @@ awful.screen.connect_for_each_screen(function(s)
   )
 
   -- Create a promptbox for each screen
-  s.mypromptbox = awful.widget.prompt()
+  s.prompt_box = awful.widget.prompt({prompt = '> '})
 
   -- Create an imagebox widget which will contain an icon indicating which
   -- layout we're using. We need one layoutbox per screen.
-  s.mylayoutbox = awful.widget.layoutbox(s)
-  s.mylayoutbox:buttons(
+  s.layout_box = awful.widget.layoutbox(s)
+  s.layout_box:buttons(
     gears.table.join(
+      -- Change the layout with left/right click and scroll up/down.
       awful.button({}, 1, function() awful.layout.inc(1) end),
       awful.button({}, 3, function() awful.layout.inc(-1) end),
       awful.button({}, 4, function() awful.layout.inc(1) end),
@@ -233,79 +184,80 @@ awful.screen.connect_for_each_screen(function(s)
   )
 
   -- Create a taglist widget
-  s.mytaglist = awful.widget.taglist({
+  s.tag_list = awful.widget.taglist({
     screen = s,
     filter = awful.widget.taglist.filter.all,
     buttons = taglist_buttons,
   })
 
   -- Create a tasklist widget
-  s.mytasklist = awful.widget.tasklist({
+  s.task_list = awful.widget.tasklist({
     screen = s,
     filter = awful.widget.tasklist.filter.currenttags,
     buttons = tasklist_buttons,
   })
 
   -- Create the wibox
-  s.mywibox = awful.wibar({ position = "top", screen = s })
+  s.wibox = awful.wibar({ height = 20, position = "top", screen = s })
 
   -- Add widgets to the wibox
-  s.mywibox:setup({
+  s.wibox:setup({
     layout = wibox.layout.align.horizontal,
     { -- Left widgets
       layout = wibox.layout.fixed.horizontal,
-      -- mylauncher,
-      s.mytaglist,
-      s.mypromptbox,
+      s.tag_list,
+      s.prompt_box,
     },
-    s.mytasklist, -- Middle widget
+    s.task_list, -- Middle widget
     { -- Right widgets
       layout = wibox.layout.fixed.horizontal,
-      mykeyboardlayout,
-      -- wibox.widget.systray(),
-      mytextclock,
-      s.mylayoutbox,
+      keyboard_layout,
+      text_clock,
+      s.layout_box,
     },
   })
 end)
 -- }}}
-
 -- {{{ Mouse bindings
-root.buttons(
-  gears.table.join(
-    -- awful.button({}, 3, function() mymainmenu:toggle() end),
-    awful.button({}, 4, awful.tag.viewnext),
-    awful.button({}, 5, awful.tag.viewprev)
-  )
-)
+root.buttons(gears.table.join(
+ -- Change the current tag with scroll up/down (while the mouse is on the screen
+ -- and no clients catch the event before).
+  awful.button({}, 4, awful.tag.viewnext),
+  awful.button({}, 5, awful.tag.viewprev)
+))
 -- }}}
-
 -- {{{ Keyboard layouts
-keyboardlayout = {}
-keyboardlayout.layouts = { "us", "fr" }
-keyboardlayout.current = 1 -- us is our default layout
-keyboardlayout.switch = function()
-  local totallayouts = #keyboardlayout.layouts
-  keyboardlayout.current = keyboardlayout.current % totallayouts + 1
-  local newlayout = keyboardlayout.layouts[keyboardlayout.current]
-  os.execute("setxkbmap " .. newlayout)
+local function create_keyboard_layout_switch()
+  local layouts = { "us", "fr" }
+  local current = 1 -- us is our default layout
+  return function()
+    local total_layouts = #layouts
+    current = current % total_layouts + 1
+    local new_layout = layouts[current]
+    os.execute("setxkbmap " .. new_layout)
+  end
 end
 -- }}}
-
 -- {{{ Key bindings
 globalkeys = gears.table.join(
+   -- Change keyboard layout
   awful.key(
     { modkey, "Shift" },
     "l",
-    keyboardlayout.switch,
+    create_keyboard_layout_switch(),
     { description = "switch keyboard", group = "keyboard" }
   ),
+
+  -- Show shortcuts
   awful.key(
     { modkey },
     "s",
     hotkeys_popup.show_help,
     { description = "show help", group = "awesome" }
   ),
+
+
+  -- Tag navigation
   awful.key(
     { modkey },
     "Left",
@@ -325,6 +277,7 @@ globalkeys = gears.table.join(
     { description = "go back", group = "tag" }
   ),
 
+  -- Client navigation
   awful.key(
     { modkey },
     "j",
@@ -337,12 +290,6 @@ globalkeys = gears.table.join(
     function() awful.client.focus.byidx(-1) end,
     { description = "focus previous by index", group = "client" }
   ),
-  -- awful.key(
-  --   { modkey },
-  --   "w",
-  --   function() mymainmenu:show() end,
-  --   { description = "show main menu", group = "awesome" }
-  -- ),
 
   -- Layout manipulation
   awful.key(
@@ -376,7 +323,6 @@ globalkeys = gears.table.join(
     { description = "jump to urgent client", group = "client" }
   ),
   awful.key(
-    -- stylua: ignore start
     { modkey },
     "Tab",
     function()
@@ -384,7 +330,6 @@ globalkeys = gears.table.join(
       if client.focus then client.focus:raise() end
     end,
     { description = "go back", group = "client" }
-    -- stylua: ignore end
   ),
 
   -- Standard program
@@ -457,7 +402,6 @@ globalkeys = gears.table.join(
   ),
 
   awful.key(
-    -- stylua: ignore start
     { modkey, "Control" },
     "n",
     function()
@@ -468,14 +412,13 @@ globalkeys = gears.table.join(
       end
     end,
     { description = "restore minimized", group = "client" }
-    -- stylua: ignore end
   ),
 
   -- Prompt
   awful.key(
     { modkey },
     "r",
-    function() awful.screen.focused().mypromptbox:run() end,
+    function() awful.screen.focused().prompt_box:run() end,
     { description = "run prompt", group = "launcher" }
   ),
 
@@ -485,7 +428,7 @@ globalkeys = gears.table.join(
     function()
       awful.prompt.run({
         prompt = "Run Lua code: ",
-        textbox = awful.screen.focused().mypromptbox.widget,
+        textbox = awful.screen.focused().prompt_box.widget,
         exe_callback = awful.util.eval,
         history_path = awful.util.get_cache_dir() .. "/history_eval",
       })
@@ -504,7 +447,6 @@ globalkeys = gears.table.join(
 
 clientkeys = gears.table.join(
   awful.key(
-    -- stylua: ignore start
     { modkey },
     "f",
     function(c)
@@ -512,7 +454,6 @@ clientkeys = gears.table.join(
       c:raise()
     end,
     { description = "toggle fullscreen", group = "client" }
-    -- stylua: ignore end
   ),
   awful.key(
     { modkey, "Shift" },
@@ -545,7 +486,6 @@ clientkeys = gears.table.join(
     { description = "toggle keep on top", group = "client" }
   ),
   awful.key(
-    -- stylua: ignore start
     { modkey },
     "n",
     function(c)
@@ -554,10 +494,8 @@ clientkeys = gears.table.join(
       c.minimized = true
     end,
     { description = "minimize", group = "client" }
-    -- stylua: ignore end
   ),
   awful.key(
-    -- stylua: ignore start
     { modkey },
     "m",
     function(c)
@@ -565,10 +503,8 @@ clientkeys = gears.table.join(
       c:raise()
     end,
     { description = "(un)maximize", group = "client" }
-    -- stylua: ignore end
   ),
   awful.key(
-    -- stylua: ignore start
     { modkey, "Control" },
     "m",
     function(c)
@@ -576,10 +512,8 @@ clientkeys = gears.table.join(
       c:raise()
     end,
     { description = "(un)maximize vertically", group = "client" }
-    -- stylua: ignore end
   ),
   awful.key(
-    -- stylua: ignore start
     { modkey, "Shift" },
     "m",
     function(c)
@@ -587,7 +521,6 @@ clientkeys = gears.table.join(
       c:raise()
     end,
     { description = "(un)maximize horizontally", group = "client" }
-    -- stylua: ignore end
   )
 )
 
@@ -600,7 +533,6 @@ for i = 1, 9 do
 
     -- View tag only.
     awful.key(
-      -- stylua: ignore start
       { modkey },
       "#" .. i + 9,
       function()
@@ -609,12 +541,10 @@ for i = 1, 9 do
         if tag then tag:view_only() end
       end,
       { description = "view tag #" .. i, group = "tag" }
-      -- stylua: ignore end
     ),
 
     -- Toggle tag display.
     awful.key(
-      -- stylua: ignore start
       { modkey, "Control" },
       "#" .. i + 9,
       function()
@@ -623,12 +553,10 @@ for i = 1, 9 do
         if tag then awful.tag.viewtoggle(tag) end
       end,
       { description = "toggle tag #" .. i, group = "tag" }
-      -- stylua: ignore end
     ),
 
     -- Move client to tag.
     awful.key(
-      -- stylua: ignore start
       { modkey, "Shift" },
       "#" .. i + 9,
       function()
@@ -638,12 +566,10 @@ for i = 1, 9 do
         end
       end,
       { description = "move focused client to tag #" .. i, group = "tag" }
-      -- stylua: ignore end
     ),
 
     -- Toggle tag on focused client.
     awful.key(
-      -- stylua: ignore start
       { modkey, "Control", "Shift" },
       "#" .. i + 9,
       function()
@@ -653,7 +579,6 @@ for i = 1, 9 do
         end
       end,
       { description = "toggle focused client on tag #" .. i, group = "tag" }
-      -- stylua: ignore end
     )
   )
 end
@@ -667,31 +592,26 @@ clientbuttons = gears.table.join(
     end
   ),
   awful.button(
-    -- stylua: ignore start
     { modkey },
     1,
     function(c)
       c:emit_signal("request::activate", "mouse_click", { raise = true })
       awful.mouse.client.move(c)
     end
-    -- stylua: ignore end
   ),
   awful.button(
-    -- stylua: ignore start
     { modkey },
     3,
     function(c)
       c:emit_signal("request::activate", "mouse_click", { raise = true })
       awful.mouse.client.resize(c)
     end
-    -- stylua: ignore end
   )
 )
 
 -- Set keys
 root.keys(globalkeys)
 -- }}}
-
 -- {{{ Rules
 -- Rules to apply to new clients (through the "manage" signal).
 awful.rules.rules = {
@@ -754,7 +674,6 @@ awful.rules.rules = {
   },
 }
 -- }}}
-
 -- {{{ Signals
 -- Signal function to execute when a new client appears.
 client.connect_signal("manage", function(c)
@@ -777,24 +696,20 @@ client.connect_signal("request::titlebars", function(c)
   -- buttons for the titlebar
   local buttons = gears.table.join(
     awful.button(
-      -- stylua: ignore start
       {},
       1,
       function()
         c:emit_signal("request::activate", "titlebar", { raise = true })
         awful.mouse.client.move(c)
       end
-      -- stylua: ignore end
     ),
     awful.button(
-      -- stylua: ignore start
       {},
       3,
       function()
         c:emit_signal("request::activate", "titlebar", { raise = true })
         awful.mouse.client.resize(c)
       end
-      -- stylua: ignore end
     )
   )
 
