@@ -168,7 +168,7 @@ awful.screen.connect_for_each_screen(function(s)
   )
 
   -- Create a promptbox for each screen
-  s.prompt_box = awful.widget.prompt({prompt = '> '})
+  s.prompt_box = awful.widget.prompt({prompt = ' > '})
 
   -- Create an imagebox widget which will contain an icon indicating which
   -- layout we're using. We need one layoutbox per screen.
