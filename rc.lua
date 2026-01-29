@@ -667,10 +667,16 @@ awful.rules.rules = {
     properties = { floating = true },
   },
 
-  -- Add titlebars to normal clients and dialogs
+  -- Hode titlebars to normal clients and dialogs
   {
     rule_any = { type = { "normal", "dialog" } },
     properties = { titlebars_enabled = false },
+  },
+
+  -- Add titlebars to mvme clients and dialogs
+  {
+    rule_any = { class = { "mvme" } },
+    properties = { titlebars_enabled = true },
   },
 }
 -- }}}
